@@ -37,3 +37,9 @@ async def test_tts():
     from server.tts import synthesize
     wav_bytes = await synthesize("नमस्ते किसान भाई, आपकी फसल की जानकारी दें।")
     return {"size_bytes": len(wav_bytes), "status": "Timbre working"}
+
+@app.get("/test-llm")
+async def test_llm():
+    from server.llm import ask_evon
+    reply = await ask_evon("गेहूं की फसल में पीले धब्बे आ रहे हैं, क्या करूं?")
+    return {"reply": reply}
