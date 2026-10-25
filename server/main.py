@@ -40,6 +40,9 @@ async def test_tts():
 
 @app.get("/test-llm")
 async def test_llm():
-    from server.llm import ask_evon
-    reply = await ask_evon("गेहूं की फसल में पीले धब्बे आ रहे हैं, क्या करूं?")
-    return {"reply": reply}
+    try:
+        from server.llm import ask_evon
+        reply = await ask_evon("गेहूं की फसल में पीले धब्बे आ रहे हैं, क्या करूं?")
+        return {"reply": reply}
+    except Exception as e:
+        return {"error": str(e)}

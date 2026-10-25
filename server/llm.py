@@ -20,7 +20,7 @@ async def ask_evon(question: str, context: str = "") -> str:
         user_message = f"{question}\n\n[Context: {context}]"
 
     payload = {
-        "model": "llama-3.3-70b-versatile",
+        "model": "mixtral-8x7b-32768",
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_message},
