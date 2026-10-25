@@ -26,3 +26,14 @@ def verify_webhook(request: Request):
 async def receive_message(request: Request):
     body = await request.json()
     return {"status": "received"}
+
+@app.get("/test-stt")
+async def test_stt():
+    # We'll test with a real audio file tomorrow
+    return {"message": "STT ready - send audio via POST /webhook"}
+
+@app.get("/test-tts")  
+async def test_tts():
+    from server.tts import synthesize
+    wav_bytes = await synthesize("नमस्ते किसान भाई, आपकी फसल की जानकारी दें।")
+    return {"size_bytes": len(wav_bytes), "status": "Timbre working"}
