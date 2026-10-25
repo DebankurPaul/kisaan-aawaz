@@ -46,3 +46,12 @@ async def test_llm():
         return {"reply": reply}
     except Exception as e:
         return {"error": str(e)}
+
+@app.get("/test-pipeline")
+async def test_pipeline():
+    from server.llm import ask_evon
+    from server.tts import synthesize
+    # Test LLM → TTS (no audio file needed)
+    reply_text = await ask_evon("गेहूं में पीले धब्बे आ रहे हैं")
+    audio = await synthesize(reply_text)
+    return {"text": reply_text, "audio_bytes": len(audio), "status": "pipeline working"}
