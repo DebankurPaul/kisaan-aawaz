@@ -24,8 +24,33 @@ def verify_webhook(request: Request):
 # WhatsApp message handler (will be filled tomorrow)
 @app.post("/webhook")
 async def receive_message(request: Request):
+    import asyncio
+    from server.pipeline import process_voice_message
+    from server.whatsapp import download_audio, send_audio_reply
+
     body = await request.json()
-    return {"status": "received"}
+    try:
+        entry = body["entry"][0]["changes"][0]["value"]
+        messages = entry.get("messages", [])
+        if not messages:
+            return {"status": "no message"}
+
+        msg = messages[0]
+        sender = msg["from"]
+        msg_type = msg["type"]
+
+        if msg_type == "audio":
+            media_id = msg["audio"]["id"]
+            audio_bytes = await download_audio(media_id)
+            reply_audio = await process_voice_message(audio_bytes)
+            await send_audio_reply(sender, reply_audio)
+            return {"status": "replied"}
+
+        return {"status": "ignored", "type": msg_type}
+
+    except Exception as e:
+        print(f"Webhook error: {e}")
+        return {"status": "error", "detail": str(e)}
 
 @app.get("/test-stt")
 async def test_stt():
