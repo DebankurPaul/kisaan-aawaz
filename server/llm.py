@@ -13,7 +13,7 @@ async def ask_evon(question: str, context: str = "") -> str:
     client = AsyncGroq(api_key=GROQ_API_KEY)
     user_message = f"{question}\n\n[Context: {context}]" if context else question
     completion = await client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_message},
