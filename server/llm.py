@@ -38,5 +38,7 @@ async def ask_evon(question: str, context: str = "") -> str:
             },
             json=payload,
         )
+        if response.status_code != 200:
+            raise ValueError(f"Groq error {response.status_code}: {response.text}")
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"]
