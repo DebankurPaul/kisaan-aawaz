@@ -1,21 +1,29 @@
 import httpx
 import os
-import io
-from pydub import AudioSegment
+import subprocess
+import tempfile
 
 GNANI_API_KEY = os.getenv("GNANI_API_KEY")
 STT_URL = "https://api.vachana.ai/stt/v3"
 
 async def transcribe(audio_bytes: bytes, language: str = "hi-IN") -> str:
-    # Convert to 16kHz mono WAV — Gnani requirement
+    # Convert to 16kHz mono WAV using ffmpeg
     try:
-        audio = AudioSegment.from_file(io.BytesIO(audio_bytes))
-        audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)
-        wav_buffer = io.BytesIO()
-        audio.export(wav_buffer, format="wav")
-        wav_bytes = wav_buffer.getvalue()
+        with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as f:
+            f.write(audio_bytes)
+            input_path = f.name
+        output_path = input_path.replace(".ogg", ".wav")
+        subprocess.run([
+            "ffmpeg", "-y", "-i", input_path,
+            "-ar", "16000", "-ac", "1", "-sample_fmt", "s16",
+            output_path
+        ], capture_output=True, check=True)
+        with open(output_path, "rb") as f:
+            wav_bytes = f.read()
+        os.unlink(input_path)
+        os.unlink(output_path)
     except Exception as e:
-        print(f"[STT] Audio conversion failed: {e}, sending raw")
+        print(f"[STT] ffmpeg conversion failed: {e}, sending raw")
         wav_bytes = audio_bytes
 
     async with httpx.AsyncClient(timeout=30) as client:
