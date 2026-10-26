@@ -18,9 +18,11 @@ def verify_webhook(request: Request):
     params = dict(request.query_params)
     token = params.get("hub.verify_token", "")
     challenge = params.get("hub.challenge", "")
+    # Meta verification
     if token == os.getenv("WEBHOOK_VERIFY_TOKEN", "kisaan123"):
         return int(challenge)
-    return {"error": "Invalid token"}
+    # Twilio just does a GET check — return 200
+    return {"status": "ok"}
 
 @app.post("/webhook")
 async def receive_message(request: Request):
