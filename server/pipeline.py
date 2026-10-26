@@ -2,20 +2,24 @@ from server.stt import transcribe
 from server.tts import synthesize
 from server.llm import ask_evon
 from server.rag import retrieve
+from server.data_feeds import get_weather, get_coords_for_phone, get_mandi_price
 
-async def process_voice_message(audio_bytes: bytes, language: str = "hi-IN") -> bytes:
-    # Step 1: Speech to text
+async def process_voice_message(audio_bytes: bytes, language: str = "hi-IN", sender: str = "") -> bytes:
     transcript = await transcribe(audio_bytes, language=language)
-    print(f"[STT] Transcript: {transcript}")
+    print(f"[STT] {transcript}")
 
-    # Step 2: Retrieve relevant advisories
-    context = retrieve(transcript)
-    print(f"[RAG] Context: {context[:100]}...")
+    # Parallel context gathering
+    advisory = retrieve(transcript)
+    mandi = get_mandi_price(transcript)
 
-    # Step 3: LLM response with context
+    lat, lon = get_coords_for_phone(sender) if sender else (26.8, 80.9)
+    weather = await get_weather(lat, lon)
+
+    context_parts = [p for p in [advisory, mandi, weather] if p]
+    context = "\n".join(context_parts)
+    print(f"[CTX] {context[:120]}")
+
     reply_text = await ask_evon(transcript, context=context)
-    print(f"[LLM] Reply: {reply_text}")
+    print(f"[LLM] {reply_text}")
 
-    # Step 4: Text to speech
-    reply_audio = await synthesize(reply_text, language=language)
-    return reply_audio
+    return await synthesize(reply_text, language=language)

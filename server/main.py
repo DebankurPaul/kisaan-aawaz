@@ -36,7 +36,7 @@ async def receive_message(request: Request):
         if msg_type == "audio":
             media_id = msg["audio"]["id"]
             audio_bytes = await download_audio(media_id)
-            reply_audio = await process_voice_message(audio_bytes)
+            reply_audio = await process_voice_message(audio_bytes, sender=sender)
             await send_audio_reply(sender, reply_audio)
             return {"status": "replied"}
         return {"status": "ignored", "type": msg_type}
@@ -69,3 +69,9 @@ async def test_pipeline():
     reply_text = await ask_evon(query, context=context)
     audio = await synthesize(reply_text)
     return {"text": reply_text, "audio_bytes": len(audio), "context_found": bool(context)}
+
+@app.get("/test-weather")
+async def test_weather():
+    from server.data_feeds import get_weather
+    result = await get_weather(30.9, 75.8)  # Ludhiana
+    return {"weather": result}
