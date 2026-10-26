@@ -1,24 +1,29 @@
-import os
-import chromadb
-from sentence_transformers import SentenceTransformer
+# Lightweight keyword-based retrieval — no embeddings, no RAM spike
+ADVISORIES = [
+    ("गेहूं में रस्ट रोग: पत्तियों पर नारंगी या भूरे धब्बे दिखें तो प्रोपिकोनाज़ोल 25% EC का 0.1% घोल छिड़कें।",
+     ["गेहूं", "wheat", "रस्ट", "rust", "धब्बे", "spots"]),
+    ("गेहूं में पीली पत्तियां: नाइट्रोजन की कमी से होती है। यूरिया 50 किग्रा/हेक्टेयर टॉप ड्रेसिंग करें।",
+     ["गेहूं", "wheat", "पीली", "yellow", "नाइट्रोजन", "nitrogen", "यूरिया"]),
+    ("धान में ब्लास्ट रोग: ट्राइसाइक्लाज़ोल 75WP 0.6 ग्राम/लीटर पानी में मिलाकर छिड़काव करें।",
+     ["धान", "rice", "ब्लास्ट", "blast"]),
+    ("कपास में बॉलवर्म: क्लोरपाइरीफॉस 2.5 मिली/लीटर का छिड़काव करें।",
+     ["कपास", "cotton", "बॉलवर्म", "bollworm", "कीड़े", "insect"]),
+    ("सोयाबीन में माहू कीट: इमिडाक्लोप्रिड 0.5 मिली/लीटर का छिड़काव करें।",
+     ["सोयाबीन", "soybean", "माहू", "aphid"]),
+    ("गेहूं की सिंचाई: बुवाई के 20-25 दिन बाद पहली सिंचाई करें। कुल 5-6 सिंचाई पर्याप्त हैं।",
+     ["गेहूं", "wheat", "सिंचाई", "irrigation", "पानी", "water"]),
+    ("धान में उर्वरक: नाइट्रोजन 120 किग्रा, फास्फोरस 60 किग्रा, पोटाश 60 किग्रा प्रति हेक्टेयर दें।",
+     ["धान", "rice", "उर्वरक", "fertilizer", "खाद"]),
+    ("मक्का में तना छेदक: कार्बोफ्यूरान 3G दानेदार 20 किग्रा/हेक्टेयर पत्तियों के भंवर में डालें।",
+     ["मक्का", "maize", "corn", "तना", "stalk", "छेदक", "borer"]),
+]
 
-# In-process ChromaDB — no server needed
-chroma_client = chromadb.Client()
-collection = chroma_client.get_or_create_collection("icar_advisories")
-
-# Multilingual embeddings for Hindi/Marathi/Bhojpuri
-embedder = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-
-def add_documents(texts: list[str], ids: list[str]):
-    """Add advisory chunks to ChromaDB."""
-    embeddings = embedder.encode(texts).tolist()
-    collection.add(documents=texts, embeddings=embeddings, ids=ids)
-
-def retrieve(query: str, top_k: int = 3) -> str:
-    """Retrieve top-k relevant advisory chunks for a query."""
-    if collection.count() == 0:
-        return ""
-    query_embedding = embedder.encode([query]).tolist()
-    results = collection.query(query_embeddings=query_embedding, n_results=top_k)
-    chunks = results["documents"][0]
-    return "\n".join(chunks)
+def retrieve(query: str, top_k: int = 2) -> str:
+    query_lower = query.lower()
+    scored = []
+    for text, keywords in ADVISORIES:
+        score = sum(1 for kw in keywords if kw.lower() in query_lower)
+        if score > 0:
+            scored.append((score, text))
+    scored.sort(reverse=True)
+    return "\n".join(t for _, t in scored[:top_k])

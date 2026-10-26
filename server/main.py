@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Request
 import os
-from data.build_index import seed_index
-seed_index()
+
 app = FastAPI()
 
 @app.get("/")
@@ -12,7 +11,6 @@ def root():
 def health():
     return {"status": "ok"}
 
-# WhatsApp webhook verification
 @app.get("/webhook")
 def verify_webhook(request: Request):
     params = dict(request.query_params)
@@ -22,43 +20,31 @@ def verify_webhook(request: Request):
         return int(challenge)
     return {"error": "Invalid token"}
 
-# WhatsApp message handler (will be filled tomorrow)
 @app.post("/webhook")
 async def receive_message(request: Request):
-    import asyncio
     from server.pipeline import process_voice_message
     from server.whatsapp import download_audio, send_audio_reply
-
     body = await request.json()
     try:
         entry = body["entry"][0]["changes"][0]["value"]
         messages = entry.get("messages", [])
         if not messages:
             return {"status": "no message"}
-
         msg = messages[0]
         sender = msg["from"]
         msg_type = msg["type"]
-
         if msg_type == "audio":
             media_id = msg["audio"]["id"]
             audio_bytes = await download_audio(media_id)
             reply_audio = await process_voice_message(audio_bytes)
             await send_audio_reply(sender, reply_audio)
             return {"status": "replied"}
-
         return {"status": "ignored", "type": msg_type}
-
     except Exception as e:
         print(f"Webhook error: {e}")
         return {"status": "error", "detail": str(e)}
 
-@app.get("/test-stt")
-async def test_stt():
-    # We'll test with a real audio file tomorrow
-    return {"message": "STT ready - send audio via POST /webhook"}
-
-@app.get("/test-tts")  
+@app.get("/test-tts")
 async def test_tts():
     from server.tts import synthesize
     wav_bytes = await synthesize("नमस्ते किसान भाई, आपकी फसल की जानकारी दें।")
@@ -77,7 +63,9 @@ async def test_llm():
 async def test_pipeline():
     from server.llm import ask_evon
     from server.tts import synthesize
-    # Test LLM → TTS (no audio file needed)
-    reply_text = await ask_evon("गेहूं में पीले धब्बे आ रहे हैं")
+    from server.rag import retrieve
+    query = "गेहूं में पीले धब्बे आ रहे हैं"
+    context = retrieve(query)
+    reply_text = await ask_evon(query, context=context)
     audio = await synthesize(reply_text)
-    return {"text": reply_text, "audio_bytes": len(audio), "status": "pipeline working"}
+    return {"text": reply_text, "audio_bytes": len(audio), "context_found": bool(context)}
