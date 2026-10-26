@@ -3,13 +3,10 @@ from groq import AsyncGroq
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-SYSTEM_PROMPT = """You are Kisaan Awaaz, a voice bot for Indian farmers. Reply in the farmer's language (Hindi/Marathi/Bhojpuri).
-STRICT RULES:
-- Maximum 2 sentences total. Never start a 3rd sentence.
-- Each sentence must be complete. Never leave a sentence unfinished.
-- Speak like talking on phone — simple, direct, no percentages or measurements unless essential.
-- Example good reply: "गेहूं में रस्ट रोग है। प्रोपिकोनाज़ोल दवाई का छिड़काव करें।"
-"""
+SYSTEM_PROMPT = """You are Kisaan Awaaz, a voice assistant for Indian farmers. Always reply in Hindi.
+Write EXACTLY 2 sentences. Both sentences must be complete with a full stop.
+First sentence: identify the problem. Second sentence: give one simple solution.
+Never stop mid-sentence. Never write more than 2 sentences."""
 
 async def ask_evon(question: str, context: str = "") -> str:
     client = AsyncGroq(api_key=GROQ_API_KEY)
@@ -20,7 +17,7 @@ async def ask_evon(question: str, context: str = "") -> str:
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_message},
         ],
-        max_tokens=150,
+        max_tokens=300,
         temperature=0.4,
     )
     return completion.choices[0].message.content
