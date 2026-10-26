@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 import os
-
+from data.build_index import seed_index
+seed_index()
 app = FastAPI()
 
 @app.get("/")
